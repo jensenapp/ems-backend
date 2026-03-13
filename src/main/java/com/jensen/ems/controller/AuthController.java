@@ -3,6 +3,7 @@ package com.jensen.ems.controller;
 
 import com.jensen.ems.dto.*;
 import com.jensen.ems.entity.Account;
+import com.jensen.ems.exception.ResourceNotFoundException;
 import com.jensen.ems.repository.AccountRepository;
 import com.jensen.ems.repository.RoleRepository;
 import com.jensen.ems.util.JwtUtil;
@@ -21,10 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,6 +39,34 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
 
+    private final AccountRepository accountRepository;
+
+    private final PasswordEncoder passwordEncoder;
+
+    private final CompromisedPasswordChecker compromisedPasswordChecker;
+
+
+    @PutMapping("change-password")
+    public ResponseEntity<ResponseDto> changePassword(@RequestBody @Valid ChangePasswordDto changePasswordDto,Authentication authentication){
+        String email = authentication.getName();
+        Account account = accountRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("account not found"));
+
+        if (!passwordEncoder.matches(changePasswordDto.getOldPassword(), account.getPasswordHash())){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDto("400", "舊密碼不正確"));
+        }
+
+        CompromisedPasswordDecision check = compromisedPasswordChecker.check(changePasswordDto.getNewPassword());
+
+        if (check.isCompromised()){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ResponseDto("400", "此密碼太過脆弱，請換一個更安全的密碼"));
+        }
+
+        String encodeNewPwd = passwordEncoder.encode(changePasswordDto.getNewPassword());
+        account.setPasswordHash(encodeNewPwd);
+        accountRepository.save(account);
+        return ResponseEntity.status(HttpStatus.OK).body(new ResponseDto("200", "密碼更新成功"));
+    }
 
 
     @PostMapping("/login")

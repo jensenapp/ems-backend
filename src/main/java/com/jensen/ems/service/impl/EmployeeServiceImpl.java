@@ -4,6 +4,7 @@ import com.jensen.ems.dto.EmployeeDto;
 import com.jensen.ems.dto.OnboardRequestDto;
 import com.jensen.ems.entity.Account;
 import com.jensen.ems.entity.Employee;
+import com.jensen.ems.entity.Role;
 import com.jensen.ems.exception.ResourceNotFoundException;
 import com.jensen.ems.mapper.EmployeeMapper;
 import com.jensen.ems.repository.AccountRepository;
@@ -12,6 +13,7 @@ import com.jensen.ems.repository.RoleRepository;
 import com.jensen.ems.service.IEmployeeService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -80,36 +82,31 @@ public class EmployeeServiceImpl implements IEmployeeService {
         return EmployeeMapper.mapToEmployeeDto(employee);
     }
 
+
+
+
     @Override
     public List<EmployeeDto> getAllEmployess() {
-        // 1. 取得當前登入者
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentEmail = authentication.getName();
 
-        // 判斷是否為 ADMIN
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        String email = authentication.getName();
 
-        List<Employee> employees;
+        Account account = accountRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("user not found"));
 
-        if (isAdmin) {
-            // ADMIN: 撈出所有人
-            employees = employeeRepository.findAll();
-        } else {
-            // USER: 透過 Email 去找綁定的那唯一一個 Account，再取得 Employee
-            Account account = accountRepository.findByEmail(currentEmail)
-                    .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+        boolean isAdmin = account.getRoles().stream().anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
 
-            if(account.getEmployee() != null) {
-                // 如果有綁定，就只回傳包含自己那一筆的 List
-                employees = List.of(account.getEmployee());
-            } else {
-                // 如果還沒綁定，回傳空陣列
-                employees = List.of();
-            }
+        if (isAdmin){
+            List<Employee> employeeList = employeeRepository.findAll();
+            return employeeList.stream().map(employee -> EmployeeMapper.mapToEmployeeDto(employee) ).toList();
         }
 
-        return employees.stream().map(EmployeeMapper::mapToEmployeeDto).toList();
+        if (account.getEmployee()==null){
+            return List.of();
+        }
+
+        EmployeeDto employeeDto = EmployeeMapper.mapToEmployeeDto(account.getEmployee());
+        return List.of(employeeDto);
     }
 
     @Override
