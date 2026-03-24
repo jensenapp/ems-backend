@@ -48,6 +48,7 @@ public class AuthController {
 
     @PutMapping("change-password")
     public ResponseEntity<ResponseDto> changePassword(@RequestBody @Valid ChangePasswordDto changePasswordDto,Authentication authentication){
+
         String email = authentication.getName();
         Account account = accountRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("account not found"));
 
@@ -80,21 +81,21 @@ public class AuthController {
                     )
             );
 
-            var loggedInAccount = (Account) authentication.getPrincipal(); // 取得登入者詳細資訊
+            Account loggedInAccount = (Account) authentication.getPrincipal(); // 取得登入者詳細資訊
 
-            UserDto userDto = new UserDto();
+            AccountResponseDto accountResponseDto = new AccountResponseDto();
 
 
-            BeanUtils.copyProperties(loggedInAccount,userDto);
+            BeanUtils.copyProperties(loggedInAccount,accountResponseDto);
 
             if (loggedInAccount.getEmployee() != null) {
-                userDto.setEmployeeId(loggedInAccount.getEmployee().getEmployeeId());
+                accountResponseDto.setEmployeeId(loggedInAccount.getEmployee().getEmployeeId());
             }
 
-            userDto.setUserId(loggedInAccount.getAccountId());
+            accountResponseDto.setAccountId(loggedInAccount.getAccountId());
 
             // 從 authentication 物件中取出 authorities 並轉為逗號分隔字串 (例如: "ROLE_USER,ROLE_ADMIN")
-           userDto.setRoles(authentication.getAuthorities()
+            accountResponseDto.setRoles(authentication.getAuthorities()
                    .stream()
                    .map(GrantedAuthority::getAuthority)
                    .collect(Collectors.joining(",")));
@@ -104,7 +105,7 @@ public class AuthController {
 
             return ResponseEntity.status(HttpStatus.OK)
                     .body(new LoginResponseDto(HttpStatus.OK.getReasonPhrase(),
-                            userDto, jwtToken));
+                            accountResponseDto, jwtToken));
 
 
         } catch (BadCredentialsException ex) {

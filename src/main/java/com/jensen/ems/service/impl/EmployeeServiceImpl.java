@@ -41,7 +41,7 @@ public class EmployeeServiceImpl implements IEmployeeService {
     public EmployeeDto onboardEmployee(OnboardRequestDto requestDto) {
 
         // 1. 檢查 Email 或手機是否已存在
-        if (accountRepository.findByEmailOrMobileNumber(requestDto.getEmail(), requestDto.getMobileNumber()).isPresent()) {
+        if (accountRepository.existsByEmailOrMobileNumber(requestDto.getEmail(), requestDto.getMobileNumber())) {
             throw new RuntimeException("Email 或是手機號碼已經被註冊過了！");
         }
 

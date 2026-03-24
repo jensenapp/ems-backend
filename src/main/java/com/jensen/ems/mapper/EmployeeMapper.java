@@ -21,16 +21,4 @@ public class EmployeeMapper {
                 employee.getStatus()
         );
     }
-
-    public static Employee mapToEmployee(EmployeeDto employeeDto){
-        Employee employee = new Employee();
-        // 只有 Employee 專屬的欄位才在這裡 set
-        employee.setEmployeeCode(employeeDto.getEmployeeCode());
-        employee.setDepartment(employeeDto.getDepartment());
-        employee.setJobTitle(employeeDto.getJobTitle());
-        employee.setHireDate(employeeDto.getHireDate());
-        employee.setStatus(employeeDto.getStatus());
-
-        return employee;
-    }
 }

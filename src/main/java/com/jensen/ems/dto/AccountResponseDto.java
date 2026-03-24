@@ -5,9 +5,9 @@ import lombok.Setter;
 import lombok.ToString;
 
 @Getter @Setter @ToString
-public class UserDto {
+public class AccountResponseDto {
 
-    private Long userId;
+    private Long accountId;
     private String name;
     private String email;
     private String mobileNumber;

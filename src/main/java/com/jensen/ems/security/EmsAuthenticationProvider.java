@@ -31,10 +31,10 @@ public class EmsAuthenticationProvider implements AuthenticationProvider {
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 
-        String name = authentication.getName();
+        String email = authentication.getName();
         String pwd = authentication.getCredentials().toString();
 
-        Account account = accountRepository.findByEmail(name).orElseThrow(() -> new UsernameNotFoundException("User details not found for the user:"+name));
+        Account account = accountRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User details not found for the user:"+email));
 
         Set<Role> roles = account.getRoles();
 
