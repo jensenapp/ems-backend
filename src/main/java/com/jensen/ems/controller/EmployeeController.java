@@ -3,7 +3,14 @@ package com.jensen.ems.controller;
 
 import com.jensen.ems.dto.EmployeeDto;
 import com.jensen.ems.dto.OnboardRequestDto;
+import com.jensen.ems.dto.ResponseDto;
+import com.jensen.ems.entity.Account;
+import com.jensen.ems.entity.Employee;
+import com.jensen.ems.exception.ResourceNotFoundException;
+import com.jensen.ems.repository.AccountRepository;
+import com.jensen.ems.repository.EmployeeRepository;
 import com.jensen.ems.service.IEmployeeService;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +25,8 @@ import java.util.List;
 @RequestMapping("/api/employees")
 public class EmployeeController {
     private final IEmployeeService employeeService;
+    private final EmployeeRepository employeeRepository;
+    private final AccountRepository accountRepository;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -50,8 +59,25 @@ public class EmployeeController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> deleteEmployee(@PathVariable Long id){
-        employeeService.deleteEmployee(id);
-        return ResponseEntity.ok("Employee deleted successfully!.");
+    @Transactional
+    public ResponseEntity<ResponseDto> deleteEmployee(@PathVariable Long id){
+
+        Employee employee = employeeRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Employee is not exists with given id: " + id));
+
+        Account account = employee.getAccount();
+
+        if (account != null) {
+            employee.setAccount(null);
+            account.setEmployee(null);
+        }
+
+        employeeRepository.delete(employee);
+
+        if (account !=null){
+            accountRepository.delete(account);
+        }
+
+
+        return ResponseEntity.ok(new ResponseDto("200","Employee deleted successfully!."));
     }
 }
